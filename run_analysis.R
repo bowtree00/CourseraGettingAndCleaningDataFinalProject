@@ -104,13 +104,14 @@ dfSummaryData <- dplyr::rename(dfSummaryData, activityNum = activityNum_mean)
 
 
 ## Save to file
-f <- file.path(path, "HumanActivityRecognitionUsingSmartphones_DataSet.csv")
-write.table(dfSummaryData, f, sep = ",", row.names = FALSE)
+f <- file.path(path, "HumanActivityRecognitionUsingSmartphones_DataSet.txt")
+write.table(dfSummaryData, f, sep = ",", row.name = FALSE)
 
 
 ## Summarize data for codebook.md
 
 str(dfSummaryData)
 
+head(dfSummaryData, n=3)
 
-
+summary(dfSummaryData)
