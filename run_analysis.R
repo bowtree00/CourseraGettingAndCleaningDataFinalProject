@@ -102,7 +102,7 @@ dfDataSubset <- dplyr::group_by(dfDataSubset, activityName, subject)
 dfSummaryData <- summarize_all(dfDataSubset, funs(mean = mean))
 
 ## Save to file
-f <- file.path(path, "HumanActivityRecognitionUsingSmartphones_DataSet.txt")
+f <- file.path(path, "HumanActivityRecognitionUsingSmartphones_DataSet.csv")
 write.table(dfSummaryData, f, sep = ",", row.names = FALSE)
 
 
