@@ -100,11 +100,17 @@ dfDataSubset <- setNames(dfDataSubset, dfDataSubNames)
 
 dfDataSubset <- dplyr::group_by(dfDataSubset, activityName, subject)
 dfSummaryData <- summarize_all(dfDataSubset, funs(mean = mean))
+dfSummaryData <- dplyr::rename(dfSummaryData, activityNum = activityNum_mean)
+
 
 ## Save to file
 f <- file.path(path, "HumanActivityRecognitionUsingSmartphones_DataSet.csv")
 write.table(dfSummaryData, f, sep = ",", row.names = FALSE)
 
+
+## Summarize data for codebook.md
+
+str(dfSummaryData)
 
 
 

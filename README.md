@@ -41,8 +41,6 @@ Outputs
 2) Codebook file `codebook.md` (Markdown)
 
 
-Scripts
--------
 
 ## Project Instructions
 
@@ -53,15 +51,22 @@ Uses descriptive activity names to name the activities in the data set
 Appropriately labels the data set with descriptive variable names.
 From the data set in step 4, creates a second, independent tidy data set with the average of each variable for each activity and each subject.
 
+## Initial Setup
+Set Path
 ```{r}
 path = "~/Documents/COURSERA/Data Science/Course3_GettingAndCleaningData/Final Project"
 setwd(path)
 ```
 
-## LOAD PACKAGES
+Load Packages
+```{r}
 require("dplyr")
+```
 
-## DOWNLOAD & UNZIP DATA
+## Download & Unzip Data
+Downloads the zip file, puts it in the Data folder and unzips it
+
+```{r}
 if(!file.exists("./data")){dir.create("./data")}
 fileUrl <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
 
@@ -69,18 +74,33 @@ if(!file.exists("./data/wearables_data.zip")) {
     download.file(fileUrl, destfile="./data/wearables_data.zip", method="curl")
     unzip("./data/wearables_data.zip", exdir="./data")
 }
+```
 
-## READ DATA INTO DATA.FRAMES
+## Read Data into Data.Frames
+The data files in 'Inertial Signals' were not used for this project
+
+Read the subject files
+```{r}
 dfSubjectTrain <- read.table("./data/UCI HAR Dataset/train/subject_train.txt", header=FALSE)
 dfSubjectTest <- read.table("./data/UCI HAR Dataset/test/subject_test.txt", header=FALSE)
+```
 
+Read the activity files
+```{r}
 dfTrainActivity <- read.table("./data/UCI HAR Dataset/train/y_train.txt", header=FALSE)
 dfTestActivity <- read.table("./data/UCI HAR Dataset/test/y_test.txt", header=FALSE)
+```
 
+Read the data files
+```{r}
 dfTrainData <- read.table("./data/UCI HAR Dataset/train/x_train.txt", header=FALSE)
 dfTestData <- read.table("./data/UCI HAR Dataset/test/x_test.txt", header=FALSE)
+```
 
-## 1) MERGE DATASETS (Training and Testing)
+## Merge Datasets (Training and Testing)
+Concatenate the training and testing data.frames for subject, activity, and data
+
+```{r}
 dfSubject <- rbind(dfSubjectTrain, dfSubjectTest)
 dfSubject <- dplyr::rename(dfSubject, subject = V1)
 
@@ -88,52 +108,64 @@ dfActivityData <- rbind(dfTrainActivity, dfTestActivity)
 dfActivityData <- dplyr::rename(dfActivityData, activityNum = V1)
 
 dfData <- rbind(dfTrainData, dfTestData)
-
-# Merge all three datasets
 dfData <- cbind(dfSubject, dfActivityData, dfData)
+```
 
-## 2) EXTRACT MEAN AND SD MEASUREMENTS
-# features.txt provides lables for each of the 561 datapoints
-# in the 'data' column for each subject/activity combination
-# Identify indices for features that are mean and SD measurements
+## Extract Mean and SD Measurements
+Get feature names from 'features.txt'. Features.txt provides lables for each of the 561 datapoints in the 'data' column for each subject/activity combination. 
 
+```{r}
 dfFeatures <- read.table("./data/UCI HAR Dataset/features.txt", header=FALSE)
 dfFeatures <- dplyr::rename(dfFeatures, featureNum = V1, featureName = V2)
+```
 
-# Get feature names for only mean and std features using grepl
-# Parentheses are special characters so need to escape them with \\
+Get feature names for only mean and std features using grepl. Parentheses are special characters so need to escape them with \\
+
+```{r}
 dfFeaturesMeanSTD <- dfFeatures[grepl("mean\\(\\)|std\\(\\)", dfFeatures$featureName),]
+```
 
-# Use dfFeaturesMeanSTD to subset the data columns in dfData
+Subset the data columns in dfData based on dfFeaturesMeanSTD. Create colNames variable by concatenating "V" with the featureNum
+```{r}
 dfFeaturesMeanSTD <- mutate(dfFeaturesMeanSTD, colNames = paste0("V", featureNum))
+```
 
-# Find the column indices for the V codes in dfFeaturesMeanSTD
-# and select these from dfData to make a subset
-
+Find the column indices for the V codes in dfFeaturesMeanSTD and select these from dfData to make a subset
+```{r}
 dfDataSubset <- dplyr::select(dfData, subject, activityNum, dfFeaturesMeanSTD$colNames)
+```
 
-## 3) USE DESCRIPTIVE ACTIVITY NAMES to name the activities in the data set
+## Use Descriptive Activity Names 
+Name the activities in the data set, reorder columns
+
+```{r}
 dfActivityNames <-  read.table("./data/UCI HAR Dataset/activity_labels.txt", header=FALSE)
 dfActivityNames <- dplyr::rename(dfActivityNames, activityNum = V1, activityName = V2)
 
 dfDataSubset <- merge(dfDataSubset, dfActivityNames, by="activityNum")
 
-# Reorder columns
+
 dfDataSubset <- dfDataSubset[c(1,2, 69, 3:68)]
+```
 
-## 4) APPROPRIATELY LABEL THE DATASET with descriptive variable names.
-# Convert "-" to "_", remove "()" from featureNames, save as new variable
+## Appropriately label the dataset
 
+Use descriptive variable names. Convert "-" to "_", remove "()" from featureNames, save as new variable
+
+```{r}
 dfFeaturesMeanSTD <- mutate(dfFeaturesMeanSTD, featureCleanName = gsub("-", "_", featureName),
                             featureCleanName = gsub("\\(\\)","",featureCleanName))
+```
 
-# Change column names in dfDataSubset to featureCleanNames
-# First match colNames from dfFeaturesMeanSTD to the column names of dfDataSubset 
+Change column names in dfDataSubset to featureCleanNames
 
+```{r}
 dataNames <- names(dfDataSubset)
+```
 
-# Create name vector then setNames for dfDataSubset to the new vector
+Create name vector then setNames for dfDataSubset to the new vector
 
+```{r}
 dfDataSubNames <- names(dfDataSubset)
 
 for (i in 1:length(dfDataSubNames)) {
@@ -143,17 +175,22 @@ for (i in 1:length(dfDataSubNames)) {
 }
 
 dfDataSubset <- setNames(dfDataSubset, dfDataSubNames)
-
+```
     
-## 5) CREATE A SECOND, INDEPENDENT TIDY DATA SET with the average of each variable for each activity and each subject
+## Create a tidy data set
+Contains the average of each variable for each activity and subject. Group dfDataSubset by activityName and subject, summarize by groups and calculate means
 
+```{r}
 dfDataSubset <- dplyr::group_by(dfDataSubset, activityName, subject)
 dfSummaryData <- summarize_all(dfDataSubset, funs(mean = mean))
+dfSummaryData <- dplyr::rename(dfSummaryData, activityNum = activityNum_mean)
+```
 
 ## Save to file
+```{r}
 f <- file.path(path, "HumanActivityRecognitionUsingSmartphones_DataSet.csv")
 write.table(dfSummaryData, f, sep = ",", row.names = FALSE)
-
+```
 
 
 
